@@ -22,6 +22,10 @@ getc() can read for stdin or file while getchar() is only stdin
 
 **format specifiers**
 
+%d - ints
+
+ 	+/- optional signs allowed
+
 %s - string
 
  	ends on white space so does not allow for something like "two word" string
