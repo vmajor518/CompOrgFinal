@@ -9,37 +9,37 @@ int read_int(va_list args, int width, char size_modifier) {
     int digit_count = 0;
     int chars_read = 0;
 
-    // Skip leading whitespace
-    while ((c = getchar()) != EOF && isspace(c)) {
-        // Just consume whitespace
-    }
+    // Consume all leading whitespace
+    while ((c = getchar()) != EOF && isspace(c)) {}
 
     if (c == EOF) {
         return 0;  // Failed to read anything
     }
 
-    // Check for sign
+    // Check for optional sign
     if (c == '+' || c == '-') {
         if (c == '-') {
             sign = -1;
         }
         chars_read++;
 
-        // Check if we've hit width limit
+        // Check if we've hit width limit after just the sign
+        // Don't check if the width limit is 0 ie unlimited
         if (width > 0 && chars_read >= width) {
             return 0;  // No digits read, just a sign
         }
-
+        // We can still read in more digits, go to the next one
         c = getchar();
     }
 
     // Read digits
     while (c != EOF && isdigit(c)) {
+        // Convert string numbers to values
         value = value * 10 + (c - '0');
         digit_count++;
         chars_read++;
 
-        // Check width limit
+        // Check width limit after each digit read in, unless width is 0 ie unlimited 
         if (width > 0 && chars_read >= width) {
             break;
         }
@@ -52,16 +52,15 @@ int read_int(va_list args, int width, char size_modifier) {
         ungetc(c, stdin);
     }
 
-    // Check if we read any digits
+    // Check if we actually read any digits
     if (digit_count == 0) {
         return 0;  // Failed - no digits found
     }
 
-    // Apply sign
+    // Apply sign (optional)
     value *= sign;
 
-    // Get the pointer where we should store the result
-    // and store based on size modifier
+    // Get the pointer (next argument from va_list) where we should store the result we read and store based on size modifier
     if (size_modifier == 'h') {
         // short
         short *ptr = va_arg(args, short*);
@@ -83,7 +82,7 @@ int read_int(va_list args, int width, char size_modifier) {
         int *ptr = va_arg(args, int*);
         *ptr = (int)value;
     }
-
+    // Successful conversion
     return 1;
 }
 
@@ -98,6 +97,7 @@ int read_hex(va_list args, int width, char size_modifier) {
 int read_char(va_list args, int width) {
     return 0;
 }
+
 int read_string(va_list args, int width) {
     return 0;
 }
@@ -107,20 +107,24 @@ int parse_format_string(const char *format, va_list args) {
     int i = 0;
 
     while (format[i] != '\0') {
+        // Check for literal characters or whitespace
         if (format[i] != '%') {
-            // Skip any amount of whitespace in input
+            // Consume any amount of whitespace from input stream
             if (isspace(format[i])) {
                 int c;
                 while ((c = getchar()) != EOF && isspace(c)) {
                 }
+                // When you find a non whitespace character return it to the stream
+                // so it can be read by the next format specifier
                 if (c != EOF) {
                     ungetc(c, stdin);
                 }
+                // Move to the next character in the format string
                 i++;
                 continue;
             }
 
-            // Match character exactly
+            // Match literal characters exactly
             int c = getchar();
             if (c != format[i]) {
                 // Mismatch - matching failure
@@ -129,16 +133,17 @@ int parse_format_string(const char *format, va_list args) {
                 }
                 return successful;
             }
+            // Move to the next character in the format string
             i++;
             continue;
         }
-
-        // We have a '%'
+        // At this point we have a '%' so see what follows it to determine which format specifier to use
         i++;
 
         // Check for '%%' (literal %)
         if (format[i] == '%') {
             int c = getchar();
+            // If you didn't find the literal % in the input stream, return immediately
             if (c != '%') {
                 if (c != EOF) {
                     ungetc(c, stdin);
@@ -150,15 +155,21 @@ int parse_format_string(const char *format, va_list args) {
         }
 
         // Check for assignment suppression '*'
+        // Will read from the input stream, but not store the value
         int suppress = 0;
         if (format[i] == '*') {
             suppress = 1;
             i++;
         }
 
-        // Parse width (optional number)
+        // Parse width (optional modifier)
         int width = 0;
+        // if there is a digit following the % it is a width modifier
+        // if no digit the loop doesn't run so width stays at 0 meaning unlimited
         while (isdigit(format[i])) {
+            // Convert string numbers to values
+            // ascii value of the number - the ascii value of 0 = the number
+            // * 10 to account for the place when a new digit is added to the right
             width = width * 10 + (format[i] - '0');
             i++;
         }
@@ -186,7 +197,7 @@ int parse_format_string(const char *format, va_list args) {
             i++;
         }
 
-        // Parse conversion specifier
+        // Determine which format specifier to use
         char specifier = format[i];
         int success = 0;
 
@@ -209,11 +220,11 @@ int parse_format_string(const char *format, va_list args) {
                 break;
 
             default:
-                // Unknown format specifier fails and returns 0 successful conversion
+                // Unknown format specifier fails and returns however many successful conversions have occurred up to this point
                     return successful;
         }
 
-        // If we successfully read something and it's not suppressed, increment count
+        // If we successfully read something, and it's not suppressed, increment count
         if (success && !suppress) {
             successful++;
         } else if (!success) {

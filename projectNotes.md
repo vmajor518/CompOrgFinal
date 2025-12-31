@@ -46,6 +46,14 @@ getc() can read for stdin or file while getchar() is only stdin
 
 takes variable num arguments
 
+... int the function definition allows varied number of arguments
+
+va\_list stores them 'list' of the arguments 
+
+va\_start() gets the first thing in the 'list'
+
+va\_arg() gets the next one in the 'list' of the specified type
+
 
 
 
@@ -53,4 +61,44 @@ takes variable num arguments
 **Testing**
 
 Have tests written in files and redirect input from file to stdin
+
+
+
+**Process**
+
+Loop through the format string one char at a time 
+
+First check if it is a literal or whitespace
+
+&nbsp;	if whitespace consume any amount of whitespace from stream and keep going until you hit a non whitespace character
+
+&nbsp;		then put back the non whitespace character you consumed 
+
+&nbsp;	if it is a literal then look for an exact match and if not found return immediately 
+
+If not it must be a %
+
+&nbsp;	Check for modifiers ie how many characters to read or store
+
+&nbsp;	Determine which format specifier is appropriate
+
+Call format specifier
+
+Increment successful conversions if applicable
+
+
+
+
+
+Format specifier helper function
+
+&nbsp;	Reads on character at a time from the input stream
+
+&nbsp;	Checks if it is the type it is supposed to be
+
+&nbsp;	If there is a width modifier only read a certain number of digits
+
+&nbsp;	Upon hitting whitespace or mismatch type store the value in the appropriate data type
+
+
 
