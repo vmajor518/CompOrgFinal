@@ -87,6 +87,21 @@ int read_int(va_list args, int width, char size_modifier) {
     return 1;
 }
 
+int read_float(va_list args, int width, char size_modifier) {
+    return 0;
+}
+
+int read_hex(va_list args, int width, char size_modifier) {
+    return 0;
+}
+
+int read_char(va_list args, int width) {
+    return 0;
+}
+int read_string(va_list args, int width) {
+    return 0;
+}
+
 int parse_format_string(const char *format, va_list args) {
     int successful = 0;
     int i = 0;
@@ -177,12 +192,24 @@ int parse_format_string(const char *format, va_list args) {
 
         switch (specifier) {
             case 'd':
-            case 'i':
                 success = read_int(args, width, size_modifier);
-            break;
+                break;
+            case 'f':
+                success = read_float(args, width, specifier);
+                break;
+            case 'x':
+            case 'X':
+                success = read_hex(args, width, specifier);
+                break;
+            case 'c':
+                success = read_char(args, width);
+                break;
+            case 's':
+                success = read_string(args, width);
+                break;
 
             default:
-                // Unknown format specifier
+                // Unknown format specifier fails and returns 0 successful conversion
                     return successful;
         }
 
@@ -211,17 +238,23 @@ int my_scanf(const char *format, ...) {
 }
 
 int main() {
-    int x, y;
+    // Test 1: Simple integers
+    printf("Test 1: Enter two integers (e.g., 10 20): ");
+    int a, b;
+    int result = my_scanf("%d %d", &a, &b);
+    printf("Read %d items: a=%d, b=%d\n\n", result, a, b);
 
-    printf("Enter one integer: ");
-    int result = my_scanf("%d", &x);
-    printf("Successfully read %d items\n", result);
-    printf("x = %d\n", x);
+    // Test 2: With width modifier
+    printf("Test 2: Enter a number (will read max 3 digits): ");
+    int c;
+    result = my_scanf("%3d", &c);
+    printf("Read %d items: c=%d\n\n", result, c);
 
-    printf("Enter two integers: ");
-    result = my_scanf("%d %d", &x, &y);
-    printf("Successfully read %d items\n", result);
-    printf("x = %d, y = %d\n", x, y);
+    // Test 3: Negative numbers
+    printf("Test 3: Enter a negative number: ");
+    int d;
+    result = my_scanf("%d", &d);
+    printf("Read %d items: d=%d\n\n", result, d);
 
     return 0;
 }
