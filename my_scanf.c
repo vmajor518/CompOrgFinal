@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 
-int read_int(va_list args, int width, char size_modifier) {
+int read_int(va_list args, int width, char size_modifier, int suppress) {
     int c;
     int sign = 1;
     long long value = 0;
@@ -48,7 +48,7 @@ int read_int(va_list args, int width, char size_modifier) {
     }
 
     // Put back the non-digit character we just read (if not EOF)
-    if (c != EOF) {
+    if (c != EOF && !isdigit(c)) {
         ungetc(c, stdin);
     }
 
@@ -61,29 +61,32 @@ int read_int(va_list args, int width, char size_modifier) {
     value *= sign;
 
     // Get the pointer (next argument from va_list) where we should store the result we read and store based on size modifier
-    if (size_modifier == 'h') {
-        // short
-        short *ptr = va_arg(args, short*);
-        *ptr = (short)value;
-    } else if (size_modifier == 'H') {
-        // char (hh modifier - using 'H' to represent)
-        signed char *ptr = va_arg(args, signed char*);
-        *ptr = (signed char)value;
-    } else if (size_modifier == 'l') {
-        // long
-        long *ptr = va_arg(args, long*);
-        *ptr = (long)value;
-    } else if (size_modifier == 'L') {
-        // long long (ll modifier - using 'L' to represent)
-        long long *ptr = va_arg(args, long long*);
-        *ptr = value;
-    } else {
-        // regular int (default)
-        int *ptr = va_arg(args, int*);
-        *ptr = (int)value;
+    // Do not store the value if assignment suppression
+    if (!suppress) {
+        if (size_modifier == 'h') {
+            // short
+            short *ptr = va_arg(args, short*);
+            *ptr = (short)value;
+        } else if (size_modifier == 'H') {
+            // char (hh modifier - using 'H' to represent)
+            signed char *ptr = va_arg(args, signed char*);
+            *ptr = (signed char)value;
+        } else if (size_modifier == 'l') {
+            // long
+            long *ptr = va_arg(args, long*);
+            *ptr = (long)value;
+        } else if (size_modifier == 'L') {
+            // long long (ll modifier - using 'L' to represent)
+            long long *ptr = va_arg(args, long long*);
+            *ptr = value;
+        } else {
+            // regular int (default)
+            int *ptr = va_arg(args, int*);
+            *ptr = (int)value;
+        }
+        // Successful conversion
+        return 1;
     }
-    // Successful conversion
-    return 1;
 }
 
 int read_float(va_list args, int width, char size_modifier) {
@@ -203,7 +206,7 @@ int parse_format_string(const char *format, va_list args) {
 
         switch (specifier) {
             case 'd':
-                success = read_int(args, width, size_modifier);
+                success = read_int(args, width, size_modifier, suppress);
                 break;
             case 'f':
                 success = read_float(args, width, specifier);
