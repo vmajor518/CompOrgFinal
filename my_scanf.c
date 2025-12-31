@@ -247,25 +247,25 @@ int my_scanf(const char *format, ...) {
     va_end(args);
     return result;
 }
-
-int main() {
-    // Test 1: Simple integers
-    printf("Test 1: Enter two integers (e.g., 10 20): ");
-    int a, b;
-    int result = my_scanf("%d %d", &a, &b);
-    printf("Read %d items: a=%d, b=%d\n\n", result, a, b);
-
-    // Test 2: With width modifier
-    printf("Test 2: Enter a number (will read max 3 digits): ");
-    int c;
-    result = my_scanf("%3d", &c);
-    printf("Read %d items: c=%d\n\n", result, c);
-
-    // Test 3: Negative numbers
-    printf("Test 3: Enter a negative number: ");
-    int d;
-    result = my_scanf("%d", &d);
-    printf("Read %d items: d=%d\n\n", result, d);
-
-    return 0;
-}
+//
+// int main() {
+//     // Test 1: Simple integers
+//     printf("Test 1: Enter two integers (e.g., 10 20): ");
+//     int a, b;
+//     int result = my_scanf("%d %d", &a, &b);
+//     printf("Read %d items: a=%d, b=%d\n\n", result, a, b);
+//
+//     // Test 2: With width modifier
+//     printf("Test 2: Enter a number (will read max 3 digits): ");
+//     int c;
+//     result = my_scanf("%3d", &c);
+//     printf("Read %d items: c=%d\n\n", result, c);
+//
+//     // Test 3: Negative numbers
+//     printf("Test 3: Enter a negative number: ");
+//     int d;
+//     result = my_scanf("%d", &d);
+//     printf("Read %d items: d=%d\n\n", result, d);
+//
+//     return 0;
+// }
