@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 // Forward declaration of function
 int my_scanf(const char *format, ...);
@@ -20,9 +19,22 @@ FILE* setup_input_from_file(const char *filename) {
     return original_stdin;
 }
 
-// Helper function to restore stdin
 void restore_stdin(FILE *original_stdin) {
-    freopen("/dev/tty", "r", stdin);
+    clearerr(stdin);  // Clear any error flags
+
+#ifdef _WIN32
+    if (freopen("CON", "r", stdin) == NULL) {
+        fprintf(stderr, "Failed to restore stdin\n");
+        exit(1);
+    }
+#else
+    if (freopen("/dev/tty", "r", stdin) == NULL) {
+        fprintf(stderr, "Failed to restore stdin\n");
+        exit(1);
+    }
+#endif
+
+    clearerr(stdin);  // Clear again after reopen
 }
 
 // Helper to read one line from test data file and write to temp file
@@ -309,6 +321,278 @@ void test_suppress_assignment() {
         tests_failed++;
     }
 }
+void test_basic_float() {
+    float val;
+    FILE *orig_stdin;
+
+    printf("Running test: Basic positive float\n");
+    prepare_test_input("test_data.txt", 17, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > 3.13 && val < 3.15) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~3.14, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Basic negative float\n");
+    prepare_test_input("test_data.txt", 18, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > -2.72 && val < -2.70) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~-2.71, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Float zero\n");
+    prepare_test_input("test_data.txt", 19, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0.0f) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0.0, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Integer as float\n");
+    prepare_test_input("test_data.txt", 20, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 42.0f) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 42.0, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+}
+
+void test_float_formats() {
+    float val;
+    FILE *orig_stdin;
+
+    printf("Running test: Scientific notation positive\n");
+    prepare_test_input("test_data.txt", 21, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > 1.22e3 && val < 1.24e3) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~1230, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Scientific notation negative exponent\n");
+    prepare_test_input("test_data.txt", 22, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > 5.59e-3 && val < 5.61e-3) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~0.0056, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: No decimal point\n");
+    prepare_test_input("test_data.txt", 23, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 100.0f) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 100.0, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Leading decimal point\n");
+    prepare_test_input("test_data.txt", 24, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > 0.49 && val < 0.51) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~0.5, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Trailing decimal point\n");
+    prepare_test_input("test_data.txt", 25, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 7.0f) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 7.0, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+}
+
+void test_multiple_floats() {
+    float val1, val2, val3;
+    FILE *orig_stdin;
+
+    printf("Running test: Two floats with space\n");
+    prepare_test_input("test_data.txt", 26, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%f %f", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && val1 > 1.0 && val1 < 1.2 && val2 > 2.4 && val2 < 2.6) {
+        printf("   PASSED - Values: %f, %f\n", val1, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~1.1, ~2.5; got %f, %f (return: %d)\n", val1, val2, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Mixed int and float\n");
+    int ival;
+    float fval;
+    prepare_test_input("test_data.txt", 27, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%d %f", &ival, &fval);
+    restore_stdin(orig_stdin);
+    if (result == 2 && ival == 42 && fval > 3.13 && fval < 3.15) {
+        printf("   PASSED - Values: %d, %f\n", ival, fval);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 42, ~3.14; got %d, %f (return: %d)\n", ival, fval, result);
+        tests_failed++;
+    }
+}
+
+void test_float_field_width() {
+    float val, val1, val2;
+    FILE *orig_stdin;
+
+    printf("Running test: Float field width\n");
+    prepare_test_input("test_data.txt", 28, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%4f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > 12.2 && val < 12.4) {
+        printf("   PASSED - Value: %f (read only 4 chars)\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~12.3, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+}
+
+void test_float_edge_cases() {
+    float val;
+    FILE *orig_stdin;
+
+    printf("Running test: Float with plus sign\n");
+    prepare_test_input("test_data.txt", 29, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > 9.98 && val < 10.02) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~10.0, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Very small float\n");
+    prepare_test_input("test_data.txt", 30, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > 0.0 && val < 0.001) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~0.0001, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Very large float\n");
+    prepare_test_input("test_data.txt", 31, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val > 1e6) {
+        printf("   PASSED - Value: %f\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected large number, got %f (return: %d)\n", val, result);
+        tests_failed++;
+    }
+}
+
+void test_float_invalid_input() {
+    float val;
+    FILE *orig_stdin;
+
+    printf("Running test: Float non-numeric input\n");
+    val = 999.9f;
+    prepare_test_input("test_data.txt", 32, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%f", &val);
+    restore_stdin(orig_stdin);
+    if (result == 0) {
+        printf("   PASSED - Return: %d, Value unchanged: %f\n", result, val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected return 0, got %d\n", result);
+        tests_failed++;
+    }
+
+    printf("Running test: Float partial match\n");
+    float val1, val2;
+    prepare_test_input("test_data.txt", 33, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%f %f", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val1 > 3.13 && val1 < 3.15) {
+        printf("   PASSED - Return: %d, First value: %f\n", result, val1);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected return 1 with val1~3.14, got return=%d, val1=%f\n", result, val1);
+        tests_failed++;
+    }
+}
+
+void test_float_suppress_assignment() {
+    float val1, val2;
+    FILE *orig_stdin;
+
+    printf("Running test: Float suppress assignment\n");
+    prepare_test_input("test_data.txt", 34, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%f %*f %f", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && val1 > 1.0 && val1 < 1.2 && val2 > 3.0 && val2 < 3.2) {
+        printf("   PASSED - Values: %f, %f (2.2 suppressed)\n", val1, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ~1.1, ~3.3; got %f, %f (return: %d)\n", val1, val2, result);
+        tests_failed++;
+    }
+}
 
 int main() {
     printf("=== my_scanf Test Suite - %%d Format Specifier ===\n\n");
@@ -332,6 +616,27 @@ int main() {
     printf("\n");
 
     test_suppress_assignment();
+    printf("\n");
+
+    test_basic_float();
+    printf("\n");
+
+    test_float_formats();
+    printf("\n");
+
+    test_multiple_floats();
+    printf("\n");
+
+    test_float_field_width();
+    printf("\n");
+
+    test_float_edge_cases();
+    printf("\n");
+
+    test_float_invalid_input();
+    printf("\n");
+
+    test_float_suppress_assignment();
     printf("\n");
 
     printf("=== Test Summary ===\n");
