@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // Forward declaration of function
 int my_scanf(const char *format, ...);
@@ -566,6 +567,345 @@ void test_float_suppress_assignment() {
         tests_failed++;
     }
 }
+void test_basic_string() {
+    char str[100];
+
+    printf("Running test: Basic string\n");
+    prepare_test_input("test_data.txt", 35, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%s", str);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(str, "hello") == 0) {
+        printf("   PASSED - Value: %s\n", str);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'hello', got '%s' (return: %d)\n", str, result);
+        tests_failed++;
+    }
+
+    printf("Running test: String with leading whitespace\n");
+    prepare_test_input("test_data.txt", 36, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%s", str);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(str, "world") == 0) {
+        printf("   PASSED - Value: %s\n", str);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'world', got '%s' (return: %d)\n", str, result);
+        tests_failed++;
+    }
+
+    printf("Running test: String stops at whitespace\n");
+    prepare_test_input("test_data.txt", 37, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%s", str);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(str, "first") == 0) {
+        printf("   PASSED - Value: %s (stopped at space)\n", str);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'first', got '%s' (return: %d)\n", str, result);
+        tests_failed++;
+    }
+}
+
+void test_string_field_width() {
+    char str[100];
+
+    printf("Running test: String with field width\n");
+    prepare_test_input("test_data.txt", 38, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%5s", str);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(str, "hello") == 0) {
+        printf("   PASSED - Value: %s (read only 5 chars)\n", str);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'hello', got '%s' (return: %d)\n", str, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Multiple strings\n");
+    char str1[100], str2[100];
+    prepare_test_input("test_data.txt", 39, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%s %s", str1, str2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && strcmp(str1, "foo") == 0 && strcmp(str2, "bar") == 0) {
+        printf("   PASSED - Values: %s, %s\n", str1, str2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'foo', 'bar'; got '%s', '%s' (return: %d)\n", str1, str2, result);
+        tests_failed++;
+    }
+}
+
+void test_string_suppress() {
+    char str1[100], str2[100];
+
+    printf("Running test: String suppress assignment\n");
+    prepare_test_input("test_data.txt", 40, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%s %*s %s", str1, str2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && strcmp(str1, "one") == 0 && strcmp(str2, "three") == 0) {
+        printf("   PASSED - Values: %s, %s ('two' suppressed)\n", str1, str2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'one', 'three'; got '%s', '%s' (return: %d)\n", str1, str2, result);
+        tests_failed++;
+    }
+}
+
+void test_basic_hex() {
+    int val;
+
+    printf("Running test: Basic hex lowercase\n");
+    prepare_test_input("test_data.txt", 41, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%x", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0x1a) {
+        printf("   PASSED - Value: 0x%x (%d)\n", val, val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0x1a (26), got 0x%x (%d) (return: %d)\n", val, val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Basic hex uppercase\n");
+    prepare_test_input("test_data.txt", 42, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%x", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0xFF) {
+        printf("   PASSED - Value: 0x%x (%d)\n", val, val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0xFF (255), got 0x%x (%d) (return: %d)\n", val, val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Hex with 0x prefix\n");
+    prepare_test_input("test_data.txt", 43, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%x", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0xABC) {
+        printf("   PASSED - Value: 0x%x (%d)\n", val, val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0xABC (2748), got 0x%x (%d) (return: %d)\n", val, val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Hex zero\n");
+    prepare_test_input("test_data.txt", 44, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%x", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: 0x%x (%d)\n", val, val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0x0 (0), got 0x%x (%d) (return: %d)\n", val, val, result);
+        tests_failed++;
+    }
+}
+
+void test_hex_field_width() {
+    int val, val1, val2;
+
+    printf("Running test: Hex field width\n");
+    prepare_test_input("test_data.txt", 45, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%2x", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0x12) {
+        printf("   PASSED - Value: 0x%x (read only 2 hex digits)\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0x12, got 0x%x (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Multiple hex values\n");
+    prepare_test_input("test_data.txt", 46, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%x %x", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && val1 == 0xA && val2 == 0xB) {
+        printf("   PASSED - Values: 0x%x, 0x%x\n", val1, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0xA, 0xB; got 0x%x, 0x%x (return: %d)\n", val1, val2, result);
+        tests_failed++;
+    }
+}
+
+void test_hex_suppress() {
+    int val1, val2;
+
+    printf("Running test: Hex suppress assignment\n");
+    prepare_test_input("test_data.txt", 47, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%x %*x %x", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && val1 == 0x10 && val2 == 0x30) {
+        printf("   PASSED - Values: 0x%x, 0x%x (0x20 suppressed)\n", val1, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0x10, 0x30; got 0x%x, 0x%x (return: %d)\n", val1, val2, result);
+        tests_failed++;
+    }
+}
+
+void test_basic_char() {
+    char c;
+
+    printf("Running test: Basic character\n");
+    prepare_test_input("test_data.txt", 48, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%c", &c);
+    restore_stdin(orig_stdin);
+    if (result == 1 && c == 'A') {
+        printf("   PASSED - Value: '%c'\n", c);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'A', got '%c' (return: %d)\n", c, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Character does not skip whitespace\n");
+    prepare_test_input("test_data.txt", 49, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%c", &c);
+    restore_stdin(orig_stdin);
+    if (result == 1 && c == ' ') {
+        printf("   PASSED - Value: ' ' (space)\n");
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected ' ' (space), got '%c' (return: %d)\n", c, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Multiple characters\n");
+    char c1, c2, c3;
+    prepare_test_input("test_data.txt", 50, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%c%c%c", &c1, &c2, &c3);
+    restore_stdin(orig_stdin);
+    if (result == 3 && c1 == 'X' && c2 == 'Y' && c3 == 'Z') {
+        printf("   PASSED - Values: '%c', '%c', '%c'\n", c1, c2, c3);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'X', 'Y', 'Z'; got '%c', '%c', '%c' (return: %d)\n", c1, c2, c3, result);
+        tests_failed++;
+    }
+}
+
+void test_char_field_width() {
+    char str[10];
+
+    printf("Running test: Character with field width (reads multiple)\n");
+    prepare_test_input("test_data.txt", 51, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%3c", str);
+    str[3] = '\0';  // Null terminate for printing
+    restore_stdin(orig_stdin);
+    if (result == 1 && strncmp(str, "abc", 3) == 0) {
+        printf("   PASSED - Value: '%s' (read 3 chars)\n", str);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'abc', got '%s' (return: %d)\n", str, result);
+        tests_failed++;
+    }
+}
+
+void test_char_suppress() {
+    char c1, c2;
+
+    printf("Running test: Character suppress assignment\n");
+    prepare_test_input("test_data.txt", 52, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%c%*c%c", &c1, &c2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && c1 == '1' && c2 == '3') {
+        printf("   PASSED - Values: '%c', '%c' ('2' suppressed)\n", c1, c2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected '1', '3'; got '%c', '%c' (return: %d)\n", c1, c2, result);
+        tests_failed++;
+    }
+}
+
+void test_mixed_types() {
+    int i;
+    float f;
+    char str[100];
+    char c;
+    unsigned int x;
+
+    printf("Running test: Mixed int, float, string\n");
+    prepare_test_input("test_data.txt", 53, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%d %f %s", &i, &f, str);
+    restore_stdin(orig_stdin);
+    if (result == 3 && i == 42 && f > 3.13 && f < 3.15 && strcmp(str, "test") == 0) {
+        printf("   PASSED - Values: %d, %f, %s\n", i, f, str);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 42, ~3.14, 'test'; got %d, %f, '%s' (return: %d)\n", i, f, str, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Mixed hex, char, int\n");
+    prepare_test_input("test_data.txt", 54, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%x %c %d", &x, &c, &i);
+    restore_stdin(orig_stdin);
+    if (result == 3 && x == 0xFF && c == 'Z' && i == 100) {
+        printf("   PASSED - Values: 0x%x, '%c', %d\n", x, c, i);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0xFF, 'Z', 100; got 0x%x, '%c', %d (return: %d)\n", x, c, i, result);
+        tests_failed++;
+    }
+
+    printf("Running test: All types in one\n");
+    char str2[100];
+    prepare_test_input("test_data.txt", 55, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%d %x %f %c %s", &i, &x, &f, &c, str2);
+    restore_stdin(orig_stdin);
+    if (result == 5 && i == 123 && x == 0xAB && f > 4.54 && f < 4.56 && c == 'Q' && strcmp(str2, "word") == 0) {
+        printf("   PASSED - Values: %d, 0x%x, %f, '%c', %s\n", i, x, f, c, str2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 123, 0xAB, ~4.55, 'Q', 'word' (return: %d)\n", result);
+        tests_failed++;
+    }
+}
+
+void test_mixed_with_suppress() {
+    int i1, i2;
+    char str[100];
+
+    printf("Running test: Mixed types with suppression\n");
+    prepare_test_input("test_data.txt", 56, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%d %*s %d %*f %s", &i1, &i2, str);
+    restore_stdin(orig_stdin);
+    if (result == 3 && i1 == 10 && i2 == 20 && strcmp(str, "end") == 0) {
+        printf("   PASSED - Values: %d, %d, %s (with suppressions)\n", i1, i2, str);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 10, 20, 'end'; got %d, %d, '%s' (return: %d)\n", i1, i2, str, result);
+        tests_failed++;
+    }
+}
+
 
 int main() {
     printf("=== my_scanf Test Suite - %%d Format Specifier ===\n\n");
@@ -610,6 +950,39 @@ int main() {
     printf("\n");
 
     test_float_suppress_assignment();
+    printf("\n");
+
+    test_basic_string();
+    printf("\n");
+
+    test_string_field_width();
+    printf("\n");
+
+    test_string_suppress();
+    printf("\n");
+
+    test_basic_hex();
+    printf("\n");
+
+    test_hex_field_width();
+    printf("\n");
+
+    test_hex_suppress();
+    printf("\n");
+
+    test_basic_char();
+    printf("\n");
+
+    test_char_field_width();
+    printf("\n");
+
+    test_char_suppress();
+    printf("\n");
+
+    test_mixed_types();
+    printf("\n");
+
+    test_mixed_with_suppress();
     printf("\n");
 
     printf("=== Test Summary ===\n");

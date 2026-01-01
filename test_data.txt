@@ -33,3 +33,25 @@ abc
 abc
 3.14 xyz
 1.1 2.2 3.3
+hello
+   world
+first second
+helloworld
+foo bar
+one two three
+1a
+FF
+0xABC
+0
+1234
+a b
+10 20 30
+A
+ B
+XYZ
+abcdef
+123
+42 3.14 test
+FF Z 100
+123 AB 4.55 Q word
+10 skip 20 3.14 end

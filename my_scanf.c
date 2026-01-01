@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 
-int read_int(va_list *args, int width, char size_modifier, int suppress) {
+int read_int(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     int sign = 1;
     long long value = 0;
@@ -65,30 +65,30 @@ int read_int(va_list *args, int width, char size_modifier, int suppress) {
     if (!suppress) {
         if (size_modifier == 'h') {
             // short
-            short *ptr = va_arg(*args, short*);
+            short *ptr = va_arg(args, short*);
             *ptr = (short)value;
         } else if (size_modifier == 'H') {
             // char (hh modifier - using 'H' to represent)
-            signed char *ptr = va_arg(*args, signed char*);
+            signed char *ptr = va_arg(args, signed char*);
             *ptr = (signed char)value;
         } else if (size_modifier == 'l') {
             // long
-            long *ptr = va_arg(*args, long*);
+            long *ptr = va_arg(args, long*);
             *ptr = (long)value;
         } else if (size_modifier == 'L') {
             // long long (ll modifier - using 'L' to represent)
-            long long *ptr = va_arg(*args, long long*);
+            long long *ptr = va_arg(args, long long*);
             *ptr = value;
         } else {
             // regular int (default)
-            int *ptr = va_arg(*args, int*);
+            int *ptr = va_arg(args, int*);
             *ptr = (int)value;
         }
     }
     return 1;
 }
 
-int read_float(va_list *args, int width, char size_modifier, int suppress) {
+int read_float(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     int chars_read = 0;
     int sign = 1;
@@ -231,29 +231,215 @@ int read_float(va_list *args, int width, char size_modifier, int suppress) {
     if (!suppress) {
         // 9) Store using size modifier
         if (size_modifier == 'l') {
-            double *ptr = va_arg(*args, double*);
+            double *ptr = va_arg(args, double*);
             *ptr = value;
         } else if (size_modifier == 'L') {
-            long double *ptr = va_arg(*args, long double*);
+            long double *ptr = va_arg(args, long double*);
             *ptr = (long double)value;
         } else {
-            float *ptr = va_arg(*args, float*);
+            float *ptr = va_arg(args, float*);
             *ptr = (float)value;
         }
     }
     return 1;
 }
 
-int read_hex(va_list *args, int width, char size_modifier) {
-    return 0;
+int read_hex(const va_list args, int width, char size_modifier, int suppress) {
+    int c;
+    unsigned long long value = 0;
+    int digit_count = 0;
+    int chars_read = 0;
+
+    // Consume all leading whitespace
+    while ((c = getchar()) != EOF && isspace(c)) {}
+
+    if (c == EOF) {
+        return 0;  // Failed to read anything
+    }
+
+    // Optional: handle 0x or 0X prefix
+    if (c == '0') {
+        chars_read++;
+
+        // Check if we've hit width limit after just the '0'
+        // Don't check if the width limit is 0 ie unlimited
+        if (width > 0 && chars_read >= width) {
+            // Just read a '0', treat it as a hex digit
+            value = 0;
+            digit_count = 1;
+            // Continue to store the value below
+        } else {
+            // We can still read more, check for 'x' or 'X'
+            int next = getchar();
+            if (next == 'x' || next == 'X') {
+                // 0x prefix found, this counts toward width but not as a digit
+                chars_read++;
+
+                // Check width limit after the prefix
+                if (width > 0 && chars_read >= width) {
+                    return 0;  // No hex digits read, just "0x"
+                }
+
+                // Continue reading hex digits
+                c = getchar();
+            } else {
+                // Just a leading 0, process it as a hex digit
+                ungetc(next, stdin);
+                // c is already '0', will be processed below
+                value = 0;
+                digit_count = 1;
+                c = getchar();
+            }
+        }
+    }
+
+    // Read hexadecimal digits
+    while (c != EOF) {
+        int hex_value = -1;
+
+        if (c >= '0' && c <= '9') {
+            hex_value = c - '0';
+        } else if (c >= 'a' && c <= 'f') {
+            hex_value = c - 'a' + 10;
+        } else if (c >= 'A' && c <= 'F') {
+            hex_value = c - 'A' + 10;
+        } else {
+            // Not a hex digit, put it back
+            ungetc(c, stdin);
+            break;
+        }
+
+        // If we found a valid hex digit, add it to value
+        if (hex_value != -1) {
+            value = value * 16 + hex_value;
+            digit_count++;
+            chars_read++;
+
+            // Check width limit after each digit read in, unless width is 0 ie unlimited
+            if (width > 0 && chars_read >= width) {
+                break;
+            }
+        }
+
+        c = getchar();
+    }
+
+    // Check if we actually read any hex digits
+    if (digit_count == 0) {
+        return 0;  // Failed - no hex digits found
+    }
+
+    // Get the pointer (next argument from va_list) where we should store the result and store based on size modifier
+    // Do not store the value if assignment suppression
+    if (!suppress) {
+        if (size_modifier == 'h') {
+            // unsigned short
+            unsigned short *ptr = va_arg(args, unsigned short*);
+            *ptr = (unsigned short)value;
+        } else if (size_modifier == 'H') {
+            // unsigned char (hh modifier - using 'H' to represent)
+            unsigned char *ptr = va_arg(args, unsigned char*);
+            *ptr = (unsigned char)value;
+        } else if (size_modifier == 'l') {
+            // unsigned long
+            unsigned long *ptr = va_arg(args, unsigned long*);
+            *ptr = (unsigned long)value;
+        } else if (size_modifier == 'L') {
+            // unsigned long long (ll modifier - using 'L' to represent)
+            unsigned long long *ptr = va_arg(args, unsigned long long*);
+            *ptr = value;
+        } else {
+            // regular unsigned int (default)
+            unsigned int *ptr = va_arg(args, unsigned int*);
+            *ptr = (unsigned int)value;
+        }
+    }
+
+    return 1;  // Successfully read 1 item
 }
 
-int read_char(va_list *args, int width) {
-    return 0;
+int read_char(const va_list args, int width, int suppress) {
+    if (width == 0) {
+        width = 1;  // Default: read 1 character
+    }
+
+    char *dest = NULL;
+    if (!suppress) {
+        dest = va_arg(args, char*);
+    }
+
+    int chars_read = 0;
+
+    // Read exactly 'width' characters (or until EOF)
+    for (int i = 0; i < width; i++) {
+        int c = getchar();
+
+        if (c == EOF) {
+            // If we hit EOF before reading all requested chars,
+            // scanf fails and returns EOF (or the count so far)
+            break;
+        }
+
+        if (!suppress) {
+            dest[chars_read] = (char)c;
+        }
+        chars_read++;
+    }
+
+    // Return 1 only if we successfully read at least one character
+    return chars_read > 0 ? 1 : 0;
 }
 
-int read_string(va_list *args, int width) {
-    return 0;
+int read_string(const va_list args, int width, int suppress) {
+    int c;
+    int chars_read = 0;
+
+    // Consume all leading whitespace
+    while ((c = getchar()) != EOF && isspace(c)) {}
+
+    if (c == EOF) {
+        return 0;  // Failed to read anything
+    }
+
+    // Get the pointer where we should store the result
+    // Only get it if we're not suppressing assignment
+    char *dest = NULL;
+    if (!suppress) {
+        dest = va_arg(args, char*);
+    }
+
+    // Read non-whitespace characters
+    while (c != EOF && !isspace(c)) {
+        // Store the character if not suppressing
+        if (!suppress) {
+            dest[chars_read] = (char)c;
+        }
+        chars_read++;
+
+        // Check width limit after each character read in, unless width is 0 ie unlimited
+        if (width > 0 && chars_read >= width) {
+            break;
+        }
+
+        c = getchar();
+    }
+
+    // Put back the whitespace character we just read (if not EOF)
+    if (c != EOF && !isspace(c)) {
+        ungetc(c, stdin);
+    }
+
+    // Check if we actually read any characters
+    if (chars_read == 0) {
+        return 0;  // Failed - no characters found
+    }
+
+    // Null-terminate the string if not suppressed
+    if (!suppress) {
+        dest[chars_read] = '\0';
+    }
+
+    return 1;  // Successfully read 1 item
 }
 
 int parse_format_string(const char *format, va_list args) {
@@ -357,20 +543,20 @@ int parse_format_string(const char *format, va_list args) {
 
         switch (specifier) {
             case 'd':
-                success = read_int(&args, width, size_modifier, suppress);
+                success = read_int(args, width, size_modifier, suppress);
                 break;
             case 'f':
-                success = read_float(&args, width, size_modifier, suppress);
+                success = read_float(args, width, size_modifier, suppress);
                 break;
             case 'x':
             case 'X':
-                success = read_hex(&args, width, size_modifier);
+                success = read_hex(args, width, size_modifier, suppress);
                 break;
             case 'c':
-                success = read_char(&args, width);
+                success = read_char(args, width, suppress);
                 break;
             case 's':
-                success = read_string(&args, width);
+                success = read_string(args, width, suppress);
                 break;
 
             default:
@@ -401,63 +587,3 @@ int my_scanf(const char *format, ...) {
     va_end(args);
     return result;
 }
-
-
-
-// int main(void) {
-//     float f1;
-//     double d1;
-//     long double ld1;
-//
-//     printf("=== Testing %%f with my_scanf ===\n\n");
-//
-//     // 1) basic float
-//     printf("Test 1: enter a float (example: 3.14): ");
-//     int count = my_scanf("%f", &f1);
-//     printf("  return value = %d, f1 = %f\n\n", count, f1);
-//
-//     // 2) leading/trailing spaces and sign
-//     printf("Test 2: enter a signed float with spaces (example:   -2.5  ): ");
-//     count = my_scanf("%f", &f1);
-//     printf("  return value = %d, f1 = %f\n\n", count, f1);
-//
-//     // 3) number with no integer part (.5)
-//     printf("Test 3: enter fractional-only (example: .5): ");
-//     count = my_scanf("%f", &f1);
-//     printf("  return value = %d, f1 = %.10g\n\n", count, f1);
-//
-//     // 4) number with no fractional digits (5.)
-//     printf("Test 4: enter with trailing dot (example: 5.): ");
-//     count = my_scanf("%f", &f1);
-//     printf("  return value = %d, f1 = %.10g\n\n", count, f1);
-//
-//     // 5) scientific notation
-//     printf("Test 5: enter exponent notation (example: 1.23e3): ");
-//     count = my_scanf("%f", &f1);
-//     printf("  return value = %d, f1 = %.10g\n\n", count, f1);
-//
-//     // 6) double with %lf
-//     printf("Test 6: enter a double using %%lf (example: 123.456): ");
-//     count = my_scanf("%lf", &d1);
-//     printf("  return value = %d, d1 = %.15g\n\n", count, d1);
-//
-//     // 7) long double with %Lf
-//     printf("Test 7: enter a long double using %%Lf (example: 0.000123): ");
-//     count = my_scanf("%Lf", &ld1);
-//     printf("  return value = %d, ld1 = %.18Lg\n\n", count, ld1);
-//
-//     // 8) multiple values in one call
-//     printf("Test 8: enter three floats separated by spaces (example: 1.1 2.2 3.3): ");
-//     float a, b, c;
-//     count = my_scanf("%f %f %f", &a, &b, &c);
-//     printf("  return value = %d, values = %.6g, %.6g, %.6g\n\n", count, a, b, c);
-//
-//     // 9) invalid input test
-//     printf("Test 9: enter something invalid for a float (example: abc): ");
-//     f1 = 123.45f;  // sentinel to see if it changes
-//     count = my_scanf("%f", &f1);
-//     printf("  return value = %d, f1 (should be unchanged or unspecified) = %.10g\n\n", count, f1);
-//
-//     printf("=== Done ===\n");
-//     return 0;
-// }
