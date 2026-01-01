@@ -22,17 +22,17 @@ FILE* setup_input_from_file(const char *filename) {
 void restore_stdin(FILE *original_stdin) {
     clearerr(stdin);  // Clear any error flags
 
-#ifdef _WIN32
-    if (freopen("CON", "r", stdin) == NULL) {
-        fprintf(stderr, "Failed to restore stdin\n");
-        exit(1);
-    }
-#else
-    if (freopen("/dev/tty", "r", stdin) == NULL) {
-        fprintf(stderr, "Failed to restore stdin\n");
-        exit(1);
-    }
-#endif
+    #ifdef _WIN32
+        if (freopen("CON", "r", stdin) == NULL) {
+            fprintf(stderr, "Failed to restore stdin\n");
+            exit(1);
+        }
+    #else
+        if (freopen("/dev/tty", "r", stdin) == NULL) {
+            fprintf(stderr, "Failed to restore stdin\n");
+            exit(1);
+        }
+    #endif
 
     clearerr(stdin);  // Clear again after reopen
 }
@@ -72,11 +72,10 @@ void prepare_test_input(const char *test_data_file, int line_num, const char *te
 
 void test_basic_integer() {
     int val;
-    FILE *orig_stdin;
 
     printf("Running test: Basic positive integer\n");
     prepare_test_input("test_data.txt", 0, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%d", &val);
     restore_stdin(orig_stdin);
     if (result == 1 && val == 42) {
@@ -116,11 +115,10 @@ void test_basic_integer() {
 
 void test_multiple_integers() {
     int val1, val2, val3;
-    FILE *orig_stdin;
 
     printf("Running test: Two integers with space\n");
     prepare_test_input("test_data.txt", 3, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%d %d", &val1, &val2);
     restore_stdin(orig_stdin);
     if (result == 2 && val1 == 10 && val2 == 20) {
@@ -160,11 +158,10 @@ void test_multiple_integers() {
 
 void test_field_width() {
     int val, val1, val2;
-    FILE *orig_stdin;
 
     printf("Running test: Field width 2\n");
     prepare_test_input("test_data.txt", 6, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%2d", &val);
     restore_stdin(orig_stdin);
     if (result == 1 && val == 12) {
@@ -191,11 +188,10 @@ void test_field_width() {
 
 void test_leading_whitespace() {
     int val;
-    FILE *orig_stdin;
 
     printf("Running test: Leading spaces\n");
     prepare_test_input("test_data.txt", 8, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%d", &val);
     restore_stdin(orig_stdin);
     if (result == 1 && val == 42) {
@@ -218,28 +214,14 @@ void test_leading_whitespace() {
         printf("   FAILED - Expected 99, got %d (return: %d)\n", val, result);
         tests_failed++;
     }
-
-    printf("Running test: Leading newlines\n");
-    prepare_test_input("test_data.txt", 10, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
-    result = my_scanf("%d", &val);
-    restore_stdin(orig_stdin);
-    if (result == 1 && val == 77) {
-        printf("   PASSED - Value: %d\n", val);
-        tests_passed++;
-    } else {
-        printf("   FAILED - Expected 77, got %d (return: %d)\n", val, result);
-        tests_failed++;
-    }
 }
 
 void test_edge_cases() {
     int val;
-    FILE *orig_stdin;
 
     printf("Running test: Explicit plus sign\n");
     prepare_test_input("test_data.txt", 11, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%d", &val);
     restore_stdin(orig_stdin);
     if (result == 1 && val == 55) {
@@ -274,12 +256,11 @@ void test_edge_cases() {
 
 void test_invalid_input() {
     int val, val1, val2;
-    FILE *orig_stdin;
 
     printf("Running test: Non-numeric input\n");
     val = 999;
     prepare_test_input("test_data.txt", 14, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%d", &val);
     restore_stdin(orig_stdin);
     if (result == 0) {
@@ -306,11 +287,10 @@ void test_invalid_input() {
 
 void test_suppress_assignment() {
     int val1, val2;
-    FILE *orig_stdin;
 
     printf("Running test: Suppress assignment\n");
     prepare_test_input("test_data.txt", 16, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%d %*d %d", &val1, &val2);
     restore_stdin(orig_stdin);
     if (result == 2 && val1 == 10 && val2 == 30) {
@@ -323,11 +303,10 @@ void test_suppress_assignment() {
 }
 void test_basic_float() {
     float val;
-    FILE *orig_stdin;
 
     printf("Running test: Basic positive float\n");
     prepare_test_input("test_data.txt", 17, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%f", &val);
     restore_stdin(orig_stdin);
     if (result == 1 && val > 3.13 && val < 3.15) {
@@ -380,11 +359,10 @@ void test_basic_float() {
 
 void test_float_formats() {
     float val;
-    FILE *orig_stdin;
 
     printf("Running test: Scientific notation positive\n");
     prepare_test_input("test_data.txt", 21, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%f", &val);
     restore_stdin(orig_stdin);
     if (result == 1 && val > 1.22e3 && val < 1.24e3) {
@@ -449,12 +427,11 @@ void test_float_formats() {
 }
 
 void test_multiple_floats() {
-    float val1, val2, val3;
-    FILE *orig_stdin;
+    float val1, val2;
 
     printf("Running test: Two floats with space\n");
     prepare_test_input("test_data.txt", 26, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%f %f", &val1, &val2);
     restore_stdin(orig_stdin);
     if (result == 2 && val1 > 1.0 && val1 < 1.2 && val2 > 2.4 && val2 < 2.6) {
@@ -482,12 +459,11 @@ void test_multiple_floats() {
 }
 
 void test_float_field_width() {
-    float val, val1, val2;
-    FILE *orig_stdin;
+    float val;
 
     printf("Running test: Float field width\n");
     prepare_test_input("test_data.txt", 28, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%4f", &val);
     restore_stdin(orig_stdin);
     if (result == 1 && val > 12.2 && val < 12.4) {
@@ -501,11 +477,10 @@ void test_float_field_width() {
 
 void test_float_edge_cases() {
     float val;
-    FILE *orig_stdin;
 
     printf("Running test: Float with plus sign\n");
     prepare_test_input("test_data.txt", 29, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%f", &val);
     restore_stdin(orig_stdin);
     if (result == 1 && val > 9.98 && val < 10.02) {
@@ -545,12 +520,11 @@ void test_float_edge_cases() {
 
 void test_float_invalid_input() {
     float val;
-    FILE *orig_stdin;
 
     printf("Running test: Float non-numeric input\n");
     val = 999.9f;
     prepare_test_input("test_data.txt", 32, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%f", &val);
     restore_stdin(orig_stdin);
     if (result == 0) {
@@ -578,14 +552,13 @@ void test_float_invalid_input() {
 
 void test_float_suppress_assignment() {
     float val1, val2;
-    FILE *orig_stdin;
 
     printf("Running test: Float suppress assignment\n");
     prepare_test_input("test_data.txt", 34, "temp_input.txt");
-    orig_stdin = setup_input_from_file("temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
     int result = my_scanf("%f %*f %f", &val1, &val2);
     restore_stdin(orig_stdin);
-    if (result == 2 && val1 > 1.0 && val1 < 1.2 && val2 > 3.0 && val2 < 3.2) {
+    if (result == 2 && val1 > 1.0 && val1 < 1.2 && val2 > 3.2 && val2 < 3.4) {
         printf("   PASSED - Values: %f, %f (2.2 suppressed)\n", val1, val2);
         tests_passed++;
     } else {

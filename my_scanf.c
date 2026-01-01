@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 
-int read_int(va_list args, int width, char size_modifier, int suppress) {
+int read_int(va_list *args, int width, char size_modifier, int suppress) {
     int c;
     int sign = 1;
     long long value = 0;
@@ -65,32 +65,30 @@ int read_int(va_list args, int width, char size_modifier, int suppress) {
     if (!suppress) {
         if (size_modifier == 'h') {
             // short
-            short *ptr = va_arg(args, short*);
+            short *ptr = va_arg(*args, short*);
             *ptr = (short)value;
         } else if (size_modifier == 'H') {
             // char (hh modifier - using 'H' to represent)
-            signed char *ptr = va_arg(args, signed char*);
+            signed char *ptr = va_arg(*args, signed char*);
             *ptr = (signed char)value;
         } else if (size_modifier == 'l') {
             // long
-            long *ptr = va_arg(args, long*);
+            long *ptr = va_arg(*args, long*);
             *ptr = (long)value;
         } else if (size_modifier == 'L') {
             // long long (ll modifier - using 'L' to represent)
-            long long *ptr = va_arg(args, long long*);
+            long long *ptr = va_arg(*args, long long*);
             *ptr = value;
         } else {
             // regular int (default)
-            int *ptr = va_arg(args, int*);
+            int *ptr = va_arg(*args, int*);
             *ptr = (int)value;
         }
-        // Successful conversion
-        return 1;
     }
-    return 0;
+    return 1;
 }
 
-int read_float(va_list args, int width, char size_modifier, int suppress) {
+int read_float(va_list *args, int width, char size_modifier, int suppress) {
     int c;
     int chars_read = 0;
     int sign = 1;
@@ -233,30 +231,28 @@ int read_float(va_list args, int width, char size_modifier, int suppress) {
     if (!suppress) {
         // 9) Store using size modifier
         if (size_modifier == 'l') {
-            double *ptr = va_arg(args, double*);
+            double *ptr = va_arg(*args, double*);
             *ptr = value;
         } else if (size_modifier == 'L') {
-            long double *ptr = va_arg(args, long double*);
+            long double *ptr = va_arg(*args, long double*);
             *ptr = (long double)value;
         } else {
-            float *ptr = va_arg(args, float*);
+            float *ptr = va_arg(*args, float*);
             *ptr = (float)value;
         }
-
-        return 1;
     }
+    return 1;
+}
+
+int read_hex(va_list *args, int width, char size_modifier) {
     return 0;
 }
 
-int read_hex(va_list args, int width, char size_modifier) {
+int read_char(va_list *args, int width) {
     return 0;
 }
 
-int read_char(va_list args, int width) {
-    return 0;
-}
-
-int read_string(va_list args, int width) {
+int read_string(va_list *args, int width) {
     return 0;
 }
 
@@ -361,20 +357,20 @@ int parse_format_string(const char *format, va_list args) {
 
         switch (specifier) {
             case 'd':
-                success = read_int(args, width, size_modifier, suppress);
+                success = read_int(&args, width, size_modifier, suppress);
                 break;
             case 'f':
-                success = read_float(args, width, specifier, suppress);
+                success = read_float(&args, width, size_modifier, suppress);
                 break;
             case 'x':
             case 'X':
-                success = read_hex(args, width, specifier);
+                success = read_hex(&args, width, size_modifier);
                 break;
             case 'c':
-                success = read_char(args, width);
+                success = read_char(&args, width);
                 break;
             case 's':
-                success = read_string(args, width);
+                success = read_string(&args, width);
                 break;
 
             default:
@@ -405,7 +401,9 @@ int my_scanf(const char *format, ...) {
     va_end(args);
     return result;
 }
-//
+
+
+
 // int main(void) {
 //     float f1;
 //     double d1;
