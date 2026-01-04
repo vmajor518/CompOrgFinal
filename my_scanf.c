@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 
-int read_int(const va_list *args, int width, char size_modifier, int suppress) {
+int read_int(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     int sign = 1;
     long long value = 0;
@@ -24,7 +24,7 @@ int read_int(const va_list *args, int width, char size_modifier, int suppress) {
         chars_read++;
 
         // Check if we've hit width limit after just the sign
-        // Don't check if the width limit is 0 ie unlimited
+        // Don't check if the width limit is set to 0 ie unlimited
         if (width > 0 && chars_read >= width) {
             return 0;  // No digits read, just a sign
         }
@@ -60,35 +60,35 @@ int read_int(const va_list *args, int width, char size_modifier, int suppress) {
     // Apply sign (optional)
     value *= sign;
 
-    // Get the pointer (next argument from va_list) where we should store the result we read and store based on size modifier
-    // Do not store the value if assignment suppression
+    // Get the pointer (next argument from va_list) to where we should store the result we read
+    // Store based on size modifier, but do not store the value if assignment suppression
     if (!suppress) {
         if (size_modifier == 'h') {
             // short
-            short *ptr = va_arg(*args, short*);
+            short *ptr = va_arg(args, short*);
             *ptr = (short)value;
         } else if (size_modifier == 'H') {
             // char (hh modifier - using 'H' to represent)
-            signed char *ptr = va_arg(*args, signed char*);
+            signed char *ptr = va_arg(args, signed char*);
             *ptr = (signed char)value;
         } else if (size_modifier == 'l') {
             // long
-            long *ptr = va_arg(*args, long*);
+            long *ptr = va_arg(args, long*);
             *ptr = (long)value;
         } else if (size_modifier == 'L') {
             // long long (ll modifier - using 'L' to represent)
-            long long *ptr = va_arg(*args, long long*);
+            long long *ptr = va_arg(args, long long*);
             *ptr = value;
         } else {
             // regular int (default)
-            int *ptr = va_arg(*args, int*);
+            int *ptr = va_arg(args, int*);
             *ptr = (int)value;
         }
     }
     return 1;
 }
 
-int read_float(const va_list *args, int width, char size_modifier, int suppress) {
+int read_float(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     int chars_read = 0;
     int sign = 1;
@@ -127,7 +127,7 @@ int read_float(const va_list *args, int width, char size_modifier, int suppress)
         c = getchar();
     }
 
-    // 3) Integer part digits
+    // Integer part before the decimal point, same as in %d
     while (c != EOF && isdigit(c)) {
         saw_digit = 1;
         int_part = int_part * 10.0 + (c - '0');
@@ -140,7 +140,7 @@ int read_float(const va_list *args, int width, char size_modifier, int suppress)
         c = getchar();
     }
 
-    // 4) Fractional part (optional)
+    //  Fractional part after decimal point
     if (c == '.' && (width == 0 || chars_read < width)) {
         saw_fraction = 1;
         chars_read++;
@@ -149,7 +149,9 @@ int read_float(const va_list *args, int width, char size_modifier, int suppress)
 
         while (c != EOF && isdigit(c) && (width == 0 || chars_read < width)) {
             saw_digit = 1;
+            // Same conversion logic as %d
             frac_part = frac_part * 10.0 + (c - '0');
+            // Divisor is basically the tenth, hundredth, etc. place
             frac_divisor *= 10.0;
             chars_read++;
 
@@ -159,92 +161,103 @@ int read_float(const va_list *args, int width, char size_modifier, int suppress)
         }
     }
 
-    // 5) Exponent part (optional)
+    // Exponent part (optional)
     if ((c == 'e' || c == 'E') && (width == 0 || chars_read < width)) {
         saw_exponent = 1;
         chars_read++;
 
         c = getchar();
 
-        // exponent optional sign
+        // Exponent sign (optional)
         if (c == '+' || c == '-') {
-            if (c == '-') exp_sign = -1;
+            if (c == '-') {
+                exp_sign = -1;
+            }
             chars_read++;
             c = getchar();
         }
 
-        // exponent digits
+        // Calculate exponent digits
         int exp_digits = 0;
         while (c != EOF && isdigit(c) && (width == 0 || chars_read < width)) {
             exponent = exponent * 10 + (c - '0');
             exp_digits++;
             chars_read++;
 
-            if (width > 0 && chars_read >= width) break;
+            // Stop if you reach the width maximum
+            if (width > 0 && chars_read >= width) {
+                break;
+            }
 
             c = getchar();
         }
-
+        // No digits after the e for exponentiation
         if (exp_digits == 0) {
-            // malformed exponent → stop parsing at 'e'
-            // push back offending char
-            if (c != EOF) ungetc(c, stdin);
-            // ignore exponent entirely
+            // push back previous char
+            if (c != EOF) {
+                ungetc(c, stdin);
+            }
+            // Ignore exponent entirely, only calculate digits preceding e
             exponent = 0;
             saw_exponent = 0;
         }
     }
 
-    // 6) push back extra character if it is NOT part of the float
+    // Put back extra character if it is NOT part of the float
     if (c != EOF && !isspace(c)) {
-        // same “don’t push last digit on width-limit” rule as %d
+        // These are valid characters in a float that are not numeric
         if (!isdigit(c) && c != '.' && c != 'e' && c != 'E' && c != '+' && c != '-') {
             ungetc(c, stdin);
         }
     }
 
-    // 7) If no digits seen at all -> fail
+    // No digits were read at all
     if (!saw_digit) {
         return 0;
     }
 
-    // 8) Build final value
+    // Calculate final float based on exponents and fractions
     double value = int_part;
 
+    // Add the 'fraction' that goes after the decimal point
     if (saw_fraction) {
         value += frac_part / frac_divisor;
     }
 
+    // Add optional sign
     value *= sign;
 
-    // exponent math
+    // Exponent math
     if (saw_exponent && exponent != 0) {
         double pow10 = 1.0;
+        // exponent of 1 if just * 10, 2 is * 100, 3 is *1000, etc
         for (int i = 0; i < exponent; i++) {
             pow10 *= 10.0;
         }
+        // negative exponent moves decimal point to the left, positive moves to the right
         if (exp_sign == -1)
             value /= pow10;
         else
             value *= pow10;
     }
+
+    // Store based on size modifier
     if (!suppress) {
-        // 9) Store using size modifier
         if (size_modifier == 'l') {
-            double *ptr = va_arg(*args, double*);
+            double *ptr = va_arg(args, double*);
             *ptr = value;
         } else if (size_modifier == 'L') {
-            long double *ptr = va_arg(*args, long double*);
+            long double *ptr = va_arg(args, long double*);
             *ptr = (long double)value;
         } else {
-            float *ptr = va_arg(*args, float*);
+            float *ptr = va_arg(args, float*);
             *ptr = (float)value;
         }
     }
     return 1;
 }
 
-int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
+int read_hex(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     unsigned long long value = 0;
     int digit_count = 0;
@@ -257,17 +270,16 @@ int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
         return 0;  // Failed to read anything
     }
 
-    // Optional: handle 0x or 0X prefix
+    // Handle 0x or 0X prefix (optional)
     if (c == '0') {
         chars_read++;
 
         // Check if we've hit width limit after just the '0'
         // Don't check if the width limit is 0 ie unlimited
         if (width > 0 && chars_read >= width) {
-            // Just read a '0', treat it as a hex digit
+            // Just read a 0 without x, treat it as a hex digit
             value = 0;
             digit_count = 1;
-            // Continue to store the value below
         } else {
             // We can still read more, check for 'x' or 'X'
             int next = getchar();
@@ -280,7 +292,7 @@ int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
                     return 0;  // No hex digits read, just "0x"
                 }
 
-                // Continue reading hex digits
+                // Continue with reading hex digits
                 c = getchar();
             } else {
                 // Just a leading 0, process it as a hex digit
@@ -293,12 +305,14 @@ int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
         }
     }
 
-    // Read hexadecimal digits
+    // Read hexadecimal digits after optional prefix
     while (c != EOF) {
         int hex_value = -1;
 
         if (c >= '0' && c <= '9') {
+            // convert valid hex digits from ascii value to int value
             hex_value = c - '0';
+        // convert valid hex chars from ascii value to int value (a/A=10, b/B=11, etc)
         } else if (c >= 'a' && c <= 'f') {
             hex_value = c - 'a' + 10;
         } else if (c >= 'A' && c <= 'F') {
@@ -311,6 +325,7 @@ int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
 
         // If we found a valid hex digit, add it to value
         if (hex_value != -1) {
+            // same conversion as in %d and %f, just in base 16 this time
             value = value * 16 + hex_value;
             digit_count++;
             chars_read++;
@@ -334,38 +349,39 @@ int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
     if (!suppress) {
         if (size_modifier == 'h') {
             // unsigned short
-            unsigned short *ptr = va_arg(*args, unsigned short*);
+            unsigned short *ptr = va_arg(args, unsigned short*);
             *ptr = (unsigned short)value;
         } else if (size_modifier == 'H') {
             // unsigned char (hh modifier - using 'H' to represent)
-            unsigned char *ptr = va_arg(*args, unsigned char*);
+            unsigned char *ptr = va_arg(args, unsigned char*);
             *ptr = (unsigned char)value;
         } else if (size_modifier == 'l') {
             // unsigned long
-            unsigned long *ptr = va_arg(*args, unsigned long*);
+            unsigned long *ptr = va_arg(args, unsigned long*);
             *ptr = (unsigned long)value;
         } else if (size_modifier == 'L') {
             // unsigned long long (ll modifier - using 'L' to represent)
-            unsigned long long *ptr = va_arg(*args, unsigned long long*);
+            unsigned long long *ptr = va_arg(args, unsigned long long*);
             *ptr = value;
         } else {
             // regular unsigned int (default)
-            unsigned int *ptr = va_arg(*args, unsigned int*);
+            unsigned int *ptr = va_arg(args, unsigned int*);
             *ptr = (unsigned int)value;
         }
     }
 
-    return 1;  // Successfully read 1 item
+    return 1;
 }
 
-int read_char(const va_list *args, int width, int suppress) {
+int read_char(const va_list args, int width, int suppress) {
     if (width == 0) {
-        width = 1;  // Default: read 1 character
+        width = 1;  // Default read 1 character
     }
 
     char *dest = NULL;
+    // get the address where the character(s) will be stored
     if (!suppress) {
-        dest = va_arg(*args, char*);
+        dest = va_arg(args, char*);
     }
 
     int chars_read = 0;
@@ -376,7 +392,7 @@ int read_char(const va_list *args, int width, int suppress) {
 
         if (c == EOF) {
             // If we hit EOF before reading all requested chars,
-            // scanf fails and returns EOF (or the count so far)
+            // scanf fails and returns the count so far
             break;
         }
 
@@ -386,11 +402,11 @@ int read_char(const va_list *args, int width, int suppress) {
         chars_read++;
     }
 
-    // Return 1 only if we successfully read at least one character
+    // Return 1 if we read at least 1 character, 0 otherwise
     return chars_read > 0 ? 1 : 0;
 }
 
-int read_string(const va_list *args, int width, int suppress) {
+int read_string(const va_list args, int width, int suppress) {
     int c;
     int chars_read = 0;
 
@@ -405,7 +421,7 @@ int read_string(const va_list *args, int width, int suppress) {
     // Only get it if we're not suppressing assignment
     char *dest = NULL;
     if (!suppress) {
-        dest = va_arg(*args, char*);
+        dest = va_arg(args, char*);
     }
 
     // Read non-whitespace characters
@@ -443,7 +459,7 @@ int read_string(const va_list *args, int width, int suppress) {
 }
 
 // UNSIGNED binary numbers
-int read_binary(const va_list *args, int width, char size_modifier, int suppress) {
+int read_binary(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     unsigned long long value = 0;
     int digit_count = 0;
@@ -456,7 +472,7 @@ int read_binary(const va_list *args, int width, char size_modifier, int suppress
         return 0;  // Failed to read anything
     }
 
-    // Optional: handle 0b or 0B prefix
+    // Handle 0b or 0B prefix (optional)
     if (c == '0') {
         chars_read++;
 
@@ -493,6 +509,7 @@ int read_binary(const va_list *args, int width, char size_modifier, int suppress
     // Read binary digits (0 or 1)
     while (c != EOF) {
         if (c == '0' || c == '1') {
+            // Same conversion logic but in base 2
             value = value * 2 + (c - '0');
             digit_count++;
             chars_read++;
@@ -518,19 +535,19 @@ int read_binary(const va_list *args, int width, char size_modifier, int suppress
     // Store the value based on size modifier (if not suppressed)
     if (!suppress) {
         if (size_modifier == 'h') {
-            unsigned short *ptr = va_arg(*args, unsigned short*);
+            unsigned short *ptr = va_arg(args, unsigned short*);
             *ptr = (unsigned short)value;
         } else if (size_modifier == 'H') {
-            unsigned char *ptr = va_arg(*args, unsigned char*);
+            unsigned char *ptr = va_arg(args, unsigned char*);
             *ptr = (unsigned char)value;
         } else if (size_modifier == 'l') {
-            unsigned long *ptr = va_arg(*args, unsigned long*);
+            unsigned long *ptr = va_arg(args, unsigned long*);
             *ptr = (unsigned long)value;
         } else if (size_modifier == 'L') {
-            unsigned long long *ptr = va_arg(*args, unsigned long long*);
+            unsigned long long *ptr = va_arg(args, unsigned long long*);
             *ptr = value;
         } else {
-            unsigned int *ptr = va_arg(*args, unsigned int*);
+            unsigned int *ptr = va_arg(args, unsigned int*);
             *ptr = (unsigned int)value;
         }
     }
@@ -538,7 +555,7 @@ int read_binary(const va_list *args, int width, char size_modifier, int suppress
     return 1;  // Successfully read 1 item
 }
 
-int read_boolean(const va_list *args, int width, int suppress) {
+int read_boolean(const va_list args, int width, int suppress) {
     int c;
     int chars_read = 0;
     int bool_value = -1;  // -1 means undetermined
@@ -625,24 +642,24 @@ int read_boolean(const va_list *args, int width, int suppress) {
 
     // Store the boolean value (if not suppressed)
     if (!suppress) {
-        int *ptr = va_arg(*args, int*);
+        int *ptr = va_arg(args, int*);
         *ptr = bool_value;
     }
 
-    return 1;  // Successfully read 1 item
+    return 1;
 }
 
-int read_line(const va_list *args, int width, int suppress) {
+int read_line(const va_list args, int width, int suppress) {
     int c;
     int chars_read = 0;
 
-    // NOTE: Unlike %s, %D does NOT skip leading whitespace
+    // NOTE: Unlike %s, this does NOT skip leading whitespace
     // It reads everything up to (but not including) the newline
 
     // Get the pointer where we should store the result
     char *dest = NULL;
     if (!suppress) {
-        dest = va_arg(*args, char*);
+        dest = va_arg(args, char*);
     }
 
     // Read characters until newline or EOF
@@ -659,21 +676,12 @@ int read_line(const va_list *args, int width, int suppress) {
         }
     }
 
-    // The newline character is NOT consumed - it stays in the input stream
-    // If you want to consume it, you can uncomment this:
-    // (but typically line-reading functions leave it for the next read)
-    /*
-    if (c == '\n') {
-        // consume the newline
-    }
-    */
 
-    // Actually, looking at typical behavior, we should consume the newline
-    // The newline terminates the line but is consumed by the read
+    // The newline terminates the line and IS consumed by the read
     if (c == '\n') {
         // Just let it be consumed (already read by getchar)
-    } else if (c != EOF) {
-        // If we stopped due to width limit, put back the character
+    } // If we stopped due to width limit, put back the character
+    else if (c != EOF) {
         ungetc(c, stdin);
     }
 
@@ -788,29 +796,29 @@ int parse_format_string(const char *format, va_list args) {
 
         switch (specifier) {
             case 'd':
-                success = read_int(&args, width, size_modifier, suppress);
+                success = read_int(args, width, size_modifier, suppress);
                 break;
             case 'f':
-                success = read_float(&args, width, size_modifier, suppress);
+                success = read_float(args, width, size_modifier, suppress);
                 break;
             case 'x':
             case 'X':
-                success = read_hex(&args, width, size_modifier, suppress);
+                success = read_hex(args, width, size_modifier, suppress);
                 break;
             case 'c':
-                success = read_char(&args, width, suppress);
+                success = read_char(args, width, suppress);
                 break;
             case 's':
-                success = read_string(&args, width, suppress);
+                success = read_string(args, width, suppress);
                 break;
             case 'b':
-                success = read_binary(&args, width, size_modifier, suppress);
+                success = read_binary(args, width, size_modifier, suppress);
                 break;
             case 'B':
-                success = read_boolean(&args, width, suppress);
+                success = read_boolean(args, width, suppress);
                 break;
             case 'N':
-                success = read_line(&args, width, suppress);
+                success = read_line(args, width, suppress);
                 break;
 
             default:

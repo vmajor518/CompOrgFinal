@@ -2,16 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Forward declaration of function
+// Forward declaration of function, my_scanf exists but not defined here
 int my_scanf(const char *format, ...);
 
-// Test result tracking
 int tests_passed = 0;
 int tests_failed = 0;
 
 // Helper function to redirect stdin to a file
 FILE* setup_input_from_file(const char *filename) {
+    // Save current stdin in a file for later
     FILE *original_stdin = stdin;
+    // redirect stdin to read from a file instead
     FILE *fp = freopen(filename, "r", stdin);
     if (fp == NULL) {
         fprintf(stderr, "Failed to open file: %s\n", filename);
@@ -20,15 +21,16 @@ FILE* setup_input_from_file(const char *filename) {
     return original_stdin;
 }
 
+// restores stdin from the file it was saved in
 void restore_stdin(FILE *original_stdin) {
-    clearerr(stdin);  // Clear any error flags
+    clearerr(stdin);
 
-    #ifdef _WIN32
+    #ifdef _WIN32 //windows
         if (freopen("CON", "r", stdin) == NULL) {
             fprintf(stderr, "Failed to restore stdin\n");
             exit(1);
         }
-    #else
+    #else //linux or mac
         if (freopen("/dev/tty", "r", stdin) == NULL) {
             fprintf(stderr, "Failed to restore stdin\n");
             exit(1);
@@ -40,7 +42,7 @@ void restore_stdin(FILE *original_stdin) {
 
 // Helper to read one line from test data file and write to temp file
 void prepare_test_input(const char *test_data_file, int line_num, const char *temp_file) {
-    FILE *data_fp = fopen(test_data_file, "r");
+    FILE *data_fp = fopen(test_data_file, "r"); // Open file
     if (data_fp == NULL) {
         fprintf(stderr, "Failed to open test data file\n");
         exit(1);
@@ -104,6 +106,20 @@ void prepare_test_input_multiline(const char *test_data_file, int start_line, in
     fclose(temp_fp);
     fclose(data_fp);
 }
+
+
+
+/* ============= Format of Test =============
+    1. Get the data from correct line of input file and write to temp file
+    2. Redirect stdin to read from the temp file NOT keyboard
+    3. Call my_scanf and get the value(s) read and the return value
+    4. Restore stdin to read input from keyboard
+    5. Compare data from my_scanf with what is expected
+        Print out results for easy comparison
+
+    To test suppression or cases where scanf should fail, put a value in the address before calling my_scanf
+    then check that the value is unchanged and check the return value of my_scanf
+*/
 
 void test_basic_integer() {
     int val;
@@ -286,7 +302,7 @@ void test_edge_cases() {
     result = my_scanf("%d", &val);
     restore_stdin(orig_stdin);
     printf("  Value read: %d (return: %d)\n", val, result);
-    tests_passed++; // Just informational for this one
+    tests_passed++;
 }
 
 void test_invalid_input() {
@@ -1448,7 +1464,7 @@ void test_line_with_mixed_types() {
     int val2;
     prepare_test_input_multiline("test_data.txt", 93, 2, "temp_input.txt");
     orig_stdin = setup_input_from_file("temp_input.txt");
-    result = my_scanf("%N%d", line2, &val2);  // Remove \n
+    result = my_scanf("%N%d", line2, &val2);
     restore_stdin(orig_stdin);
     if (result == 2 && strcmp(line2, "Line before number") == 0 && val2 == 100) {
         printf("   PASSED - Values: '%s', %d\n", line2, val2);
@@ -1465,7 +1481,7 @@ void test_line_suppress() {
     printf("Running test: Line suppress assignment\n");
     prepare_test_input_multiline("test_data.txt", 95, 3, "temp_input.txt");
     FILE *orig_stdin = setup_input_from_file("temp_input.txt");
-    int result = my_scanf("%N%*N%N", line1, line2);  // Remove \n
+    int result = my_scanf("%N%*N%N", line1, line2);
     restore_stdin(orig_stdin);
     if (result == 2 && strcmp(line1, "Keep this") == 0 && strcmp(line2, "And this") == 0) {
         printf("   PASSED - Values: '%s', '%s' (middle line suppressed)\n", line1, line2);
