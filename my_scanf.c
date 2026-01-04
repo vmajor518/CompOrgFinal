@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 
-int read_int(const va_list *args, int width, char size_modifier, int suppress) {
+int read_int(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     int sign = 1;
     long long value = 0;
@@ -65,30 +65,30 @@ int read_int(const va_list *args, int width, char size_modifier, int suppress) {
     if (!suppress) {
         if (size_modifier == 'h') {
             // short
-            short *ptr = va_arg(*args, short*);
+            short *ptr = va_arg(args, short*);
             *ptr = (short)value;
         } else if (size_modifier == 'H') {
             // char (hh modifier - using 'H' to represent)
-            signed char *ptr = va_arg(*args, signed char*);
+            signed char *ptr = va_arg(args, signed char*);
             *ptr = (signed char)value;
         } else if (size_modifier == 'l') {
             // long
-            long *ptr = va_arg(*args, long*);
+            long *ptr = va_arg(args, long*);
             *ptr = (long)value;
         } else if (size_modifier == 'L') {
             // long long (ll modifier - using 'L' to represent)
-            long long *ptr = va_arg(*args, long long*);
+            long long *ptr = va_arg(args, long long*);
             *ptr = value;
         } else {
             // regular int (default)
-            int *ptr = va_arg(*args, int*);
+            int *ptr = va_arg(args, int*);
             *ptr = (int)value;
         }
     }
     return 1;
 }
 
-int read_float(const va_list *args, int width, char size_modifier, int suppress) {
+int read_float(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     int chars_read = 0;
     int sign = 1;
@@ -231,20 +231,20 @@ int read_float(const va_list *args, int width, char size_modifier, int suppress)
     if (!suppress) {
         // 9) Store using size modifier
         if (size_modifier == 'l') {
-            double *ptr = va_arg(*args, double*);
+            double *ptr = va_arg(args, double*);
             *ptr = value;
         } else if (size_modifier == 'L') {
-            long double *ptr = va_arg(*args, long double*);
+            long double *ptr = va_arg(args, long double*);
             *ptr = (long double)value;
         } else {
-            float *ptr = va_arg(*args, float*);
+            float *ptr = va_arg(args, float*);
             *ptr = (float)value;
         }
     }
     return 1;
 }
 
-int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
+int read_hex(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     unsigned long long value = 0;
     int digit_count = 0;
@@ -334,23 +334,23 @@ int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
     if (!suppress) {
         if (size_modifier == 'h') {
             // unsigned short
-            unsigned short *ptr = va_arg(*args, unsigned short*);
+            unsigned short *ptr = va_arg(args, unsigned short*);
             *ptr = (unsigned short)value;
         } else if (size_modifier == 'H') {
             // unsigned char (hh modifier - using 'H' to represent)
-            unsigned char *ptr = va_arg(*args, unsigned char*);
+            unsigned char *ptr = va_arg(args, unsigned char*);
             *ptr = (unsigned char)value;
         } else if (size_modifier == 'l') {
             // unsigned long
-            unsigned long *ptr = va_arg(*args, unsigned long*);
+            unsigned long *ptr = va_arg(args, unsigned long*);
             *ptr = (unsigned long)value;
         } else if (size_modifier == 'L') {
             // unsigned long long (ll modifier - using 'L' to represent)
-            unsigned long long *ptr = va_arg(*args, unsigned long long*);
+            unsigned long long *ptr = va_arg(args, unsigned long long*);
             *ptr = value;
         } else {
             // regular unsigned int (default)
-            unsigned int *ptr = va_arg(*args, unsigned int*);
+            unsigned int *ptr = va_arg(args, unsigned int*);
             *ptr = (unsigned int)value;
         }
     }
@@ -358,14 +358,14 @@ int read_hex(const va_list *args, int width, char size_modifier, int suppress) {
     return 1;  // Successfully read 1 item
 }
 
-int read_char(const va_list *args, int width, int suppress) {
+int read_char(const va_list args, int width, int suppress) {
     if (width == 0) {
         width = 1;  // Default: read 1 character
     }
 
     char *dest = NULL;
     if (!suppress) {
-        dest = va_arg(*args, char*);
+        dest = va_arg(args, char*);
     }
 
     int chars_read = 0;
@@ -390,7 +390,7 @@ int read_char(const va_list *args, int width, int suppress) {
     return chars_read > 0 ? 1 : 0;
 }
 
-int read_string(const va_list *args, int width, int suppress) {
+int read_string(const va_list args, int width, int suppress) {
     int c;
     int chars_read = 0;
 
@@ -405,7 +405,7 @@ int read_string(const va_list *args, int width, int suppress) {
     // Only get it if we're not suppressing assignment
     char *dest = NULL;
     if (!suppress) {
-        dest = va_arg(*args, char*);
+        dest = va_arg(args, char*);
     }
 
     // Read non-whitespace characters
@@ -443,7 +443,7 @@ int read_string(const va_list *args, int width, int suppress) {
 }
 
 // UNSIGNED binary numbers
-int read_binary(const va_list *args, int width, char size_modifier, int suppress) {
+int read_binary(const va_list args, int width, char size_modifier, int suppress) {
     int c;
     unsigned long long value = 0;
     int digit_count = 0;
@@ -518,19 +518,19 @@ int read_binary(const va_list *args, int width, char size_modifier, int suppress
     // Store the value based on size modifier (if not suppressed)
     if (!suppress) {
         if (size_modifier == 'h') {
-            unsigned short *ptr = va_arg(*args, unsigned short*);
+            unsigned short *ptr = va_arg(args, unsigned short*);
             *ptr = (unsigned short)value;
         } else if (size_modifier == 'H') {
-            unsigned char *ptr = va_arg(*args, unsigned char*);
+            unsigned char *ptr = va_arg(args, unsigned char*);
             *ptr = (unsigned char)value;
         } else if (size_modifier == 'l') {
-            unsigned long *ptr = va_arg(*args, unsigned long*);
+            unsigned long *ptr = va_arg(args, unsigned long*);
             *ptr = (unsigned long)value;
         } else if (size_modifier == 'L') {
-            unsigned long long *ptr = va_arg(*args, unsigned long long*);
+            unsigned long long *ptr = va_arg(args, unsigned long long*);
             *ptr = value;
         } else {
-            unsigned int *ptr = va_arg(*args, unsigned int*);
+            unsigned int *ptr = va_arg(args, unsigned int*);
             *ptr = (unsigned int)value;
         }
     }
@@ -538,7 +538,7 @@ int read_binary(const va_list *args, int width, char size_modifier, int suppress
     return 1;  // Successfully read 1 item
 }
 
-int read_boolean(const va_list *args, int width, int suppress) {
+int read_boolean(const va_list args, int width, int suppress) {
     int c;
     int chars_read = 0;
     int bool_value = -1;  // -1 means undetermined
@@ -625,14 +625,14 @@ int read_boolean(const va_list *args, int width, int suppress) {
 
     // Store the boolean value (if not suppressed)
     if (!suppress) {
-        int *ptr = va_arg(*args, int*);
+        int *ptr = va_arg(args, int*);
         *ptr = bool_value;
     }
 
     return 1;  // Successfully read 1 item
 }
 
-int read_line(const va_list *args, int width, int suppress) {
+int read_line(const va_list args, int width, int suppress) {
     int c;
     int chars_read = 0;
 
@@ -642,7 +642,7 @@ int read_line(const va_list *args, int width, int suppress) {
     // Get the pointer where we should store the result
     char *dest = NULL;
     if (!suppress) {
-        dest = va_arg(*args, char*);
+        dest = va_arg(args, char*);
     }
 
     // Read characters until newline or EOF
@@ -788,29 +788,29 @@ int parse_format_string(const char *format, va_list args) {
 
         switch (specifier) {
             case 'd':
-                success = read_int(&args, width, size_modifier, suppress);
+                success = read_int(args, width, size_modifier, suppress);
                 break;
             case 'f':
-                success = read_float(&args, width, size_modifier, suppress);
+                success = read_float(args, width, size_modifier, suppress);
                 break;
             case 'x':
             case 'X':
-                success = read_hex(&args, width, size_modifier, suppress);
+                success = read_hex(args, width, size_modifier, suppress);
                 break;
             case 'c':
-                success = read_char(&args, width, suppress);
+                success = read_char(args, width, suppress);
                 break;
             case 's':
-                success = read_string(&args, width, suppress);
+                success = read_string(args, width, suppress);
                 break;
             case 'b':
-                success = read_binary(&args, width, size_modifier, suppress);
+                success = read_binary(args, width, size_modifier, suppress);
                 break;
             case 'B':
-                success = read_boolean(&args, width, suppress);
+                success = read_boolean(args, width, suppress);
                 break;
             case 'N':
-                success = read_line(&args, width, suppress);
+                success = read_line(args, width, suppress);
                 break;
 
             default:
