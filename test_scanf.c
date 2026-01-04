@@ -71,6 +71,40 @@ void prepare_test_input(const char *test_data_file, int line_num, const char *te
     exit(1);
 }
 
+// Helper to read multiple consecutive lines starting from line_num
+void prepare_test_input_multiline(const char *test_data_file, int start_line, int num_lines, const char *temp_file) {
+    FILE *data_fp = fopen(test_data_file, "r");
+    if (data_fp == NULL) {
+        fprintf(stderr, "Failed to open test data file\n");
+        exit(1);
+    }
+
+    char buffer[1024];
+    int current_line = 0;
+
+    // Open temp file for writing
+    FILE *temp_fp = fopen(temp_file, "w");
+    if (temp_fp == NULL) {
+        fprintf(stderr, "Failed to create temp file\n");
+        exit(1);
+    }
+
+    // Skip to start line
+    while (fgets(buffer, sizeof(buffer), data_fp) != NULL && current_line < start_line) {
+        current_line++;
+    }
+
+    // Write num_lines to temp file
+    int lines_written = 0;
+    while (lines_written < num_lines && fgets(buffer, sizeof(buffer), data_fp) != NULL) {
+        fputs(buffer, temp_fp);
+        lines_written++;
+    }
+
+    fclose(temp_fp);
+    fclose(data_fp);
+}
+
 void test_basic_integer() {
     int val;
 
@@ -906,6 +940,541 @@ void test_mixed_with_suppress() {
     }
 }
 
+void test_basic_binary() {
+    unsigned int val;
+
+    printf("Running test: Basic binary\n");
+    prepare_test_input("test_data.txt", 57, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 5) {  // 101 in binary = 5
+        printf("   PASSED - Value: %u (binary 101)\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 5, got %u (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Binary with 0b prefix\n");
+    prepare_test_input("test_data.txt", 58, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 10) {  // 0b1010 = 10
+        printf("   PASSED - Value: %u (binary 0b1010)\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 10, got %u (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Binary all ones\n");
+    prepare_test_input("test_data.txt", 59, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 15) {  // 1111 = 15
+        printf("   PASSED - Value: %u (binary 1111)\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 15, got %u (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Binary zero\n");
+    prepare_test_input("test_data.txt", 60, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: %u (binary 0)\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0, got %u (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Binary just 0 (not 0b)\n");
+    prepare_test_input("test_data.txt", 61, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: %u\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0, got %u (return: %d)\n", val, result);
+        tests_failed++;
+    }
+}
+
+void test_binary_field_width() {
+    unsigned int val, val1, val2;
+
+    printf("Running test: Binary field width\n");
+    prepare_test_input("test_data.txt", 62, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%4b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 12) {  // 1100 = 12 (read only 4 digits)
+        printf("   PASSED - Value: %u (read only 4 binary digits)\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 12, got %u (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Multiple binary values\n");
+    prepare_test_input("test_data.txt", 63, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%b %b", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && val1 == 7 && val2 == 3) {  // 111 = 7, 11 = 3
+        printf("   PASSED - Values: %u, %u\n", val1, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 7, 3; got %u, %u (return: %d)\n", val1, val2, result);
+        tests_failed++;
+    }
+}
+
+void test_binary_edge_cases() {
+    unsigned int val;
+
+    printf("Running test: Binary with leading whitespace\n");
+    prepare_test_input("test_data.txt", 64, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 6) {  // 110 = 6
+        printf("   PASSED - Value: %u\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 6, got %u (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Binary invalid input\n");
+    val = 999;
+    prepare_test_input("test_data.txt", 65, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 0) {
+        printf("   PASSED - Return: %d, Value unchanged: %u\n", result, val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected return 0, got %d\n", result);
+        tests_failed++;
+    }
+
+    printf("Running test: Binary with 0B prefix (uppercase)\n");
+    prepare_test_input("test_data.txt", 66, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%b", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 8) {  // 0B1000 = 8
+        printf("   PASSED - Value: %u\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 8, got %u (return: %d)\n", val, result);
+        tests_failed++;
+    }
+}
+
+void test_binary_suppress() {
+    unsigned int val1, val2;
+
+    printf("Running test: Binary suppress assignment\n");
+    prepare_test_input("test_data.txt", 67, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%b %*b %b", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && val1 == 1 && val2 == 7) {  // 1, (suppress 11), 111
+        printf("   PASSED - Values: %u, %u (middle value suppressed)\n", val1, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, 7; got %u, %u (return: %d)\n", val1, val2, result);
+        tests_failed++;
+    }
+}
+
+void test_basic_boolean() {
+    int val;
+
+    printf("Running test: Boolean true (numeric 1)\n");
+    prepare_test_input("test_data.txt", 68, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 1) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean false (numeric 0)\n");
+    prepare_test_input("test_data.txt", 69, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean 'true' (full word)\n");
+    prepare_test_input("test_data.txt", 70, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 1) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean 'false' (full word)\n");
+    prepare_test_input("test_data.txt", 71, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean 't' (single char)\n");
+    prepare_test_input("test_data.txt", 72, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 1) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean 'f' (single char)\n");
+    prepare_test_input("test_data.txt", 73, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+}
+
+void test_boolean_variants() {
+    int val;
+
+    printf("Running test: Boolean 'yes'\n");
+    prepare_test_input("test_data.txt", 74, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 1) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean 'no'\n");
+    prepare_test_input("test_data.txt", 75, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean 'y' (single char)\n");
+    prepare_test_input("test_data.txt", 76, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 1) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean 'n' (single char)\n");
+    prepare_test_input("test_data.txt", 77, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean uppercase 'TRUE'\n");
+    prepare_test_input("test_data.txt", 78, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 1) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean uppercase 'FALSE'\n");
+    prepare_test_input("test_data.txt", 79, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 0) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 0, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+}
+
+void test_boolean_edge_cases() {
+    int val;
+
+    printf("Running test: Boolean with leading whitespace\n");
+    prepare_test_input("test_data.txt", 80, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 1 && val == 1) {
+        printf("   PASSED - Value: %d\n", val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, got %d (return: %d)\n", val, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Boolean invalid input\n");
+    val = 999;
+    prepare_test_input("test_data.txt", 81, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B", &val);
+    restore_stdin(orig_stdin);
+    if (result == 0) {
+        printf("   PASSED - Return: %d, Value unchanged: %d\n", result, val);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected return 0, got %d\n", result);
+        tests_failed++;
+    }
+
+    printf("Running test: Multiple booleans\n");
+    int val1, val2;
+    prepare_test_input("test_data.txt", 82, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%B %B", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && val1 == 1 && val2 == 0) {
+        printf("   PASSED - Values: %d, %d\n", val1, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, 0; got %d, %d (return: %d)\n", val1, val2, result);
+        tests_failed++;
+    }
+}
+
+void test_boolean_suppress() {
+    int val1, val2;
+
+    printf("Running test: Boolean suppress assignment\n");
+    prepare_test_input("test_data.txt", 83, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%B %*B %B", &val1, &val2);
+    restore_stdin(orig_stdin);
+    if (result == 2 && val1 == 1 && val2 == 0) {
+        printf("   PASSED - Values: %d, %d (middle value suppressed)\n", val1, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 1, 0; got %d, %d (return: %d)\n", val1, val2, result);
+        tests_failed++;
+    }
+}
+
+void test_basic_line() {
+    char line[200];
+
+    printf("Running test: Basic line read\n");
+    prepare_test_input("test_data.txt", 84, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%N", line);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(line, "Hello World") == 0) {
+        printf("   PASSED - Value: '%s'\n", line);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'Hello World', got '%s' (return: %d)\n", line, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Line with leading spaces\n");
+    prepare_test_input("test_data.txt", 85, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%N", line);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(line, "  spaces at start") == 0) {
+        printf("   PASSED - Value: '%s' (preserved spaces)\n", line);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected '  spaces at start', got '%s' (return: %d)\n", line, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Line with trailing spaces\n");
+    prepare_test_input("test_data.txt", 86, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%N", line);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(line, "spaces at end  ") == 0) {
+        printf("   PASSED - Value: '%s' (preserved spaces)\n", line);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'spaces at end  ', got '%s' (return: %d)\n", line, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Empty line\n");
+    prepare_test_input("test_data.txt", 87, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%N", line);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(line, "") == 0) {
+        printf("   PASSED - Value: '' (empty line)\n");
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected empty line, got '%s' (return: %d)\n", line, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Line with special characters\n");
+    prepare_test_input("test_data.txt", 88, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%N", line);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(line, "Hello! How are you? #test @user") == 0) {
+        printf("   PASSED - Value: '%s'\n", line);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected special chars, got '%s' (return: %d)\n", line, result);
+        tests_failed++;
+    }
+}
+
+void test_line_field_width() {
+    char line[200];
+
+    printf("Running test: Line with field width\n");
+    prepare_test_input("test_data.txt", 89, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%10N", line);
+    restore_stdin(orig_stdin);
+    if (result == 1 && strcmp(line, "This is a ") == 0) {
+        printf("   PASSED - Value: '%s' (read only 10 chars)\n", line);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'This is a ', got '%s' (return: %d)\n", line, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Multiple lines\n");
+    char line1[200], line2[200];
+    prepare_test_input_multiline("test_data.txt", 89, 2, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%N%N", line1, line2);  // Remove \n
+    restore_stdin(orig_stdin);
+    if (result == 2 && strcmp(line1, "First line") == 0 && strcmp(line2, "Second line") == 0) {
+        printf("   PASSED - Values: '%s', '%s'\n", line1, line2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'First line', 'Second line'; got '%s', '%s' (return: %d)\n", line1, line2, result);
+        tests_failed++;
+    }
+}
+
+void test_line_with_mixed_types() {
+    int val;
+    char line[200];
+
+    printf("Running test: Int then line\n");
+    prepare_test_input_multiline("test_data.txt", 91, 2, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%d\n%N", &val, line);  // Remove \n
+    restore_stdin(orig_stdin);
+    if (result == 2 && val == 42 && strcmp(line, "rest of line") == 0) {
+        printf("   PASSED - Values: %d, '%s'\n", val, line);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 42, 'rest of line'; got %d, '%s' (return: %d)\n", val, line, result);
+        tests_failed++;
+    }
+
+    printf("Running test: Line then int\n");
+    char line2[200];
+    int val2;
+    prepare_test_input_multiline("test_data.txt", 93, 2, "temp_input.txt");
+    orig_stdin = setup_input_from_file("temp_input.txt");
+    result = my_scanf("%N%d", line2, &val2);  // Remove \n
+    restore_stdin(orig_stdin);
+    if (result == 2 && strcmp(line2, "Line before number") == 0 && val2 == 100) {
+        printf("   PASSED - Values: '%s', %d\n", line2, val2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'Line before number', 100; got '%s', %d (return: %d)\n", line2, val2, result);
+        tests_failed++;
+    }
+}
+
+void test_line_suppress() {
+    char line1[200], line2[200];
+
+    printf("Running test: Line suppress assignment\n");
+    prepare_test_input_multiline("test_data.txt", 95, 3, "temp_input.txt");
+    FILE *orig_stdin = setup_input_from_file("temp_input.txt");
+    int result = my_scanf("%N%*N%N", line1, line2);  // Remove \n
+    restore_stdin(orig_stdin);
+    if (result == 2 && strcmp(line1, "Keep this") == 0 && strcmp(line2, "And this") == 0) {
+        printf("   PASSED - Values: '%s', '%s' (middle line suppressed)\n", line1, line2);
+        tests_passed++;
+    } else {
+        printf("   FAILED - Expected 'Keep this', 'And this'; got '%s', '%s' (return: %d)\n", line1, line2, result);
+        tests_failed++;
+    }
+}
 
 int main() {
     printf("=== my_scanf Test Suite - %%d Format Specifier ===\n\n");
@@ -983,6 +1552,42 @@ int main() {
     printf("\n");
 
     test_mixed_with_suppress();
+    printf("\n");
+
+    test_basic_binary();
+    printf("\n");
+
+    test_binary_field_width();
+    printf("\n");
+
+    test_binary_edge_cases();
+    printf("\n");
+
+    test_binary_suppress();
+    printf("\n");
+
+    test_basic_boolean();
+    printf("\n");
+
+    test_boolean_variants();
+    printf("\n");
+
+    test_boolean_edge_cases();
+    printf("\n");
+
+    test_boolean_suppress();
+    printf("\n");
+
+    test_basic_line();
+    printf("\n");
+
+    test_line_field_width();
+    printf("\n");
+
+    test_line_with_mixed_types();
+    printf("\n");
+
+    test_line_suppress();
     printf("\n");
 
     printf("=== Test Summary ===\n");

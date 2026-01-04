@@ -55,3 +55,45 @@ abcdef
 FF Z 100
 123 AB 4.55 Q word
 10 skip 20 3.14 end
+101
+0b1010
+1111
+0
+0
+11001010
+111 11
+  110
+xyz
+0B1000
+1 11 111
+1
+0
+true
+false
+t
+f
+yes
+no
+y
+n
+TRUE
+FALSE
+  true
+xyz
+true false
+true false false
+Hello World
+  spaces at start
+spaces at end  
+
+Hello! How are you? #test @user
+This is a very long line
+First line
+Second line
+42
+rest of line
+Line before number
+100
+Keep this
+Skip this line
+And this
